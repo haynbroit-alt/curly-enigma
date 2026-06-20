@@ -6,6 +6,7 @@ Usage
     geoflow train --config configs/gridworld_default.yaml --seed 42
     geoflow benchmark --config configs/gridworld_default.yaml
     geoflow benchmark --config configs/gridworld_default.yaml --seeds 10
+    geoflow chat
     geoflow --version
 """
 from __future__ import annotations
@@ -122,6 +123,48 @@ def benchmark(
     typer.echo("\nResults saved:")
     typer.echo(f"  {json_path}")
     typer.echo(f"  {csv_path}")
+
+
+# ── geoflow chat ──────────────────────────────────────────────────────────────
+
+_CHAT_HELP = """\
+Examples:
+  run a benchmark with 5 seeds
+  train on a rough landscape
+  compare GeoFlow vs standard GFN with 3 seeds
+  run 1000 steps on D=6 K=4 with 5 seeds
+  how well does it explore on a smooth landscape?
+"""
+
+
+@app.command()
+def chat() -> None:
+    """Interactive natural language interface to GeoFlow experiments."""
+    from ..chat import GeoFlowChatAgent
+
+    agent = GeoFlowChatAgent()
+    typer.echo("\nGeoFlow Chat  (type 'help' for examples, 'quit' to exit)\n")
+
+    while True:
+        try:
+            text = typer.prompt("GeoFlow")
+        except (KeyboardInterrupt, EOFError):
+            typer.echo("\nBye.")
+            break
+
+        text = text.strip()
+        if not text:
+            continue
+        if text.lower() in ("quit", "exit", "q", "bye"):
+            typer.echo("Bye.")
+            break
+        if text.lower() in ("help", "?", "aide"):
+            typer.echo(_CHAT_HELP)
+            continue
+
+        typer.echo()
+        typer.echo(agent.chat(text))
+        typer.echo()
 
 
 # ── geoflow version ───────────────────────────────────────────────────────────
