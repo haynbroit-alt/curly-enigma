@@ -224,6 +224,37 @@ class GeoFlowAgent:
         """Return the exact policy distribution P_theta(x) over all states."""
         return exact_policy_dist(self.policy, self.env)
 
+    # ── Class methods ─────────────────────────────────────────────────────────
+
+    @classmethod
+    def from_config(cls, path: str, seed: int | None = None,
+                    overrides: dict | None = None) -> "tuple[GeoFlowAgent, dict]":
+        """Instantiate an agent from a YAML config file.
+
+        Parameters
+        ----------
+        path      : path to a YAML config file
+        seed      : overrides the first seed in config.training.seeds
+        overrides : dict of config overrides (deep-merged before building)
+
+        Returns
+        -------
+        (agent, config) — the built agent and the resolved config dict.
+
+        Example
+        -------
+        >>> agent, cfg = GeoFlowAgent.from_config("configs/gridworld_default.yaml")
+        >>> agent.fit(n_steps=cfg["training"]["n_steps"])
+        """
+        from .experiment.runner import load_config, merge_config, _build_env, _build_agent
+        cfg = load_config(path)
+        if overrides:
+            cfg = merge_config(cfg, overrides)
+        effective_seed = seed if seed is not None else cfg.get("training", {}).get("seeds", [0])[0]
+        env = _build_env(cfg.get("env", {}))
+        agent = _build_agent(env, cfg.get("agent", {}), seed=effective_seed)
+        return agent, cfg
+
     # ── Internals ─────────────────────────────────────────────────────────────
 
     def _log_pf_for_state(self, state: tuple) -> float:
