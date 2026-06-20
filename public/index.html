@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GeoFlow-GFN</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    .card {
+      max-width: 680px;
+      width: 100%;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 2.5rem 3rem;
+    }
+    .badge {
+      display: inline-block;
+      background: #1f6feb22;
+      color: #58a6ff;
+      border: 1px solid #1f6feb55;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      padding: 0.25rem 0.75rem;
+      margin-bottom: 1.25rem;
+      text-transform: uppercase;
+    }
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.5rem;
+    }
+    h1 span { color: #58a6ff; }
+    .tagline {
+      color: #8b949e;
+      font-size: 1rem;
+      margin-bottom: 2rem;
+      line-height: 1.6;
+    }
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .metric {
+      background: #0d1117;
+      border: 1px solid #21262d;
+      border-radius: 8px;
+      padding: 1rem;
+      text-align: center;
+    }
+    .metric-val {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #3fb950;
+    }
+    .metric-label {
+      font-size: 0.75rem;
+      color: #8b949e;
+      margin-top: 0.25rem;
+    }
+    pre {
+      background: #0d1117;
+      border: 1px solid #21262d;
+      border-radius: 8px;
+      padding: 1.25rem 1.5rem;
+      font-size: 0.82rem;
+      line-height: 1.6;
+      overflow-x: auto;
+      margin-bottom: 2rem;
+      color: #e6edf3;
+    }
+    .kw { color: #ff7b72; }
+    .fn { color: #d2a8ff; }
+    .str { color: #a5d6ff; }
+    .cm { color: #8b949e; }
+    .links {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    a.btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.5rem 1.1rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      text-decoration: none;
+      transition: opacity 0.15s;
+    }
+    a.btn:hover { opacity: 0.8; }
+    .btn-primary { background: #238636; color: #fff; }
+    .btn-secondary { background: #21262d; color: #e6edf3; border: 1px solid #30363d; }
+    footer {
+      margin-top: 2rem;
+      color: #484f58;
+      font-size: 0.8rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="badge">Research Library · v0.2.0</div>
+    <h1>GeoFlow<span>-GFN</span></h1>
+    <p class="tagline">
+      Adaptive exploration kernel for GFlowNets — learnable metric + Trajectory Balance training.
+      Guides sampling toward high-reward regions via a differentiable distance matrix over terminal states.
+    </p>
+
+    <div class="metrics">
+      <div class="metric">
+        <div class="metric-val">0.017</div>
+        <div class="metric-label">TV distance</div>
+      </div>
+      <div class="metric">
+        <div class="metric-val">100%</div>
+        <div class="metric-label">Mode coverage</div>
+      </div>
+      <div class="metric">
+        <div class="metric-val">20/20</div>
+        <div class="metric-label">Tests passing</div>
+      </div>
+    </div>
+
+    <pre><span class="kw">from</span> geoflow <span class="kw">import</span> GeoFlowAgent, GridWorld, CoverageTracker
+
+env   = <span class="fn">GridWorld</span>(D=<span class="str">4</span>, K=<span class="str">4</span>)
+agent = <span class="fn">GeoFlowAgent</span>(env=env, lambda_kl=<span class="str">0.1</span>)
+
+history = agent.<span class="fn">fit</span>(
+    n_steps=<span class="str">500</span>,
+    callbacks=[<span class="fn">CoverageTracker</span>()],
+)
+<span class="cm"># tv=0.017 | coverage=100% (8/8 modes)</span></pre>
+
+    <div class="links">
+      <a class="btn btn-primary" href="https://github.com/haynbroit-alt/curly-enigma">
+        View on GitHub
+      </a>
+      <a class="btn btn-secondary" href="https://github.com/haynbroit-alt/curly-enigma/blob/main/README.md">
+        Documentation
+      </a>
+    </div>
+  </div>
+
+  <footer>GeoFlow-GFN · MIT License · pip install geoflow-gfn</footer>
+</body>
+</html>

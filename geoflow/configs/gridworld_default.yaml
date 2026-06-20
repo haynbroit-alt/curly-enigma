@@ -1,0 +1,31 @@
+env:
+  type: gridworld
+  D: 4
+  K: 4
+  length_scale: 1.2
+  seed: 0
+
+agent:
+  hidden: 128
+  lr: 5.0e-3
+  lr_metric: 5.0e-3
+  lambda_kl: 0.1
+  beta: 0.01
+  batch_size: 50
+  use_metric: true
+
+training:
+  n_steps: 500
+  log_every: 50
+  seeds: [0, 1, 2, 3, 4]
+  verbose: false
+
+callbacks:
+  CoverageTracker:
+    eval_every: 50
+  EarlyStopping:
+    tv_threshold: 0.05
+    patience: 3
+
+output:
+  dir: outputs/

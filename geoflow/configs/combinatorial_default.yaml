@@ -1,0 +1,27 @@
+env:
+  type: combinatorial
+  target: 42
+  scale: 5.0
+  max_tokens: 6
+
+agent:
+  hidden: 128
+  lr: 3.0e-3
+  lr_metric: 1.0e-3
+  lambda_kl: 0.05
+  beta: 0.005
+  batch_size: 50
+  use_metric: false
+
+training:
+  n_steps: 1000
+  log_every: 100
+  seeds: [0, 1, 2]
+  verbose: false
+
+callbacks:
+  JSONLogger:
+    path: outputs/combinatorial.json
+
+output:
+  dir: outputs/
