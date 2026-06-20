@@ -20,6 +20,7 @@ from .experiment import (
     RunResult as RunResult,
     BenchmarkResult as BenchmarkResult,
 )
+from .chat import GeoFlowChatAgent as GeoFlowChatAgent
 
 __all__ = [
     "__version__",
@@ -41,4 +42,5 @@ __all__ = [
     "merge_config",
     "RunResult",
     "BenchmarkResult",
+    "GeoFlowChatAgent",
 ]
