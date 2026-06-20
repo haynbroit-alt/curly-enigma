@@ -18,7 +18,7 @@
       padding: 2rem;
     }
     .card {
-      max-width: 680px;
+      max-width: 720px;
       width: 100%;
       background: #161b22;
       border: 1px solid #30363d;
@@ -51,29 +51,69 @@
       margin-bottom: 2rem;
       line-height: 1.6;
     }
+
+    /* ── Metrics grid ── */
     .metrics {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 1rem;
-      margin-bottom: 2rem;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.75rem;
+      margin-bottom: 1.75rem;
     }
     .metric {
       background: #0d1117;
       border: 1px solid #21262d;
       border-radius: 8px;
-      padding: 1rem;
+      padding: 0.9rem 0.75rem;
       text-align: center;
     }
     .metric-val {
-      font-size: 1.5rem;
+      font-size: 1.3rem;
       font-weight: 700;
       color: #3fb950;
+      line-height: 1.2;
+    }
+    .metric-std {
+      font-size: 0.7rem;
+      color: #6e7681;
+      margin-top: 0.1rem;
     }
     .metric-label {
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       color: #8b949e;
-      margin-top: 0.25rem;
+      margin-top: 0.35rem;
     }
+
+    /* ── Benchmark table ── */
+    .bench-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #8b949e;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 0.6rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      margin-bottom: 1.75rem;
+    }
+    th {
+      text-align: left;
+      color: #6e7681;
+      font-weight: 500;
+      padding: 0.3rem 0.5rem;
+      border-bottom: 1px solid #21262d;
+    }
+    td {
+      padding: 0.35rem 0.5rem;
+      border-bottom: 1px solid #161b22;
+      color: #e6edf3;
+    }
+    td.good { color: #3fb950; font-weight: 600; }
+    td.dim  { color: #8b949e; }
+
+    /* ── Code block ── */
     pre {
       background: #0d1117;
       border: 1px solid #21262d;
@@ -89,11 +129,9 @@
     .fn { color: #d2a8ff; }
     .str { color: #a5d6ff; }
     .cm { color: #8b949e; }
-    .links {
-      display: flex;
-      gap: 0.75rem;
-      flex-wrap: wrap;
-    }
+
+    /* ── Buttons ── */
+    .links { display: flex; gap: 0.75rem; flex-wrap: wrap; }
     a.btn {
       display: inline-flex;
       align-items: center;
@@ -106,19 +144,25 @@
       transition: opacity 0.15s;
     }
     a.btn:hover { opacity: 0.8; }
-    .btn-primary { background: #238636; color: #fff; }
+    .btn-primary   { background: #238636; color: #fff; }
     .btn-secondary { background: #21262d; color: #e6edf3; border: 1px solid #30363d; }
+
     footer {
       margin-top: 2rem;
       color: #484f58;
       font-size: 0.8rem;
       text-align: center;
     }
+    .divider {
+      border: none;
+      border-top: 1px solid #21262d;
+      margin: 1.5rem 0;
+    }
   </style>
 </head>
 <body>
   <div class="card">
-    <div class="badge">Research Library · v0.2.0</div>
+    <div class="badge">Research Library · v0.3.0</div>
     <h1>GeoFlow<span>-GFN</span></h1>
     <p class="tagline">
       Adaptive exploration kernel for GFlowNets — learnable metric + Trajectory Balance training.
@@ -127,18 +171,58 @@
 
     <div class="metrics">
       <div class="metric">
-        <div class="metric-val">0.017</div>
+        <div class="metric-val">0.014</div>
+        <div class="metric-std">± 0.004</div>
         <div class="metric-label">TV distance</div>
       </div>
       <div class="metric">
         <div class="metric-val">100%</div>
+        <div class="metric-std">± 0%</div>
         <div class="metric-label">Mode coverage</div>
       </div>
       <div class="metric">
+        <div class="metric-val">5</div>
+        <div class="metric-std">seeds</div>
+        <div class="metric-label">Reproduced</div>
+      </div>
+      <div class="metric">
         <div class="metric-val">20/20</div>
-        <div class="metric-label">Tests passing</div>
+        <div class="metric-std">CI green</div>
+        <div class="metric-label">Tests</div>
       </div>
     </div>
+
+    <div class="bench-title">GridWorld Benchmark · D=4, K=4, N=256 states</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Landscape (ℓ)</th>
+          <th>GFN-standard TV</th>
+          <th>GeoFlow TV</th>
+          <th>Δ TV</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>0.4 (rough)</td>
+          <td class="dim">0.179 ± 0.020</td>
+          <td class="good">0.169 ± 0.019</td>
+          <td class="dim">−0.010</td>
+        </tr>
+        <tr>
+          <td>1.2 (medium)</td>
+          <td class="dim">0.062 ± 0.011</td>
+          <td class="good">0.061 ± 0.009</td>
+          <td class="dim">−0.001</td>
+        </tr>
+        <tr>
+          <td>4.0 (smooth)</td>
+          <td class="dim">0.015 ± 0.004</td>
+          <td class="good">0.014 ± 0.004</td>
+          <td class="dim">−0.001</td>
+        </tr>
+      </tbody>
+    </table>
 
     <pre><span class="kw">from</span> geoflow <span class="kw">import</span> GeoFlowAgent, GridWorld, CoverageTracker
 
@@ -149,7 +233,8 @@ history = agent.<span class="fn">fit</span>(
     n_steps=<span class="str">500</span>,
     callbacks=[<span class="fn">CoverageTracker</span>()],
 )
-<span class="cm"># tv=0.017 | coverage=100% (8/8 modes)</span></pre>
+<span class="cm"># {'tv': 0.014, 'coverage': 1.0, 'n_covered': 8, 'n_modes': 8}</span>
+print(agent.<span class="fn">evaluate</span>())</pre>
 
     <div class="links">
       <a class="btn btn-primary" href="https://github.com/haynbroit-alt/curly-enigma">
@@ -157,6 +242,9 @@ history = agent.<span class="fn">fit</span>(
       </a>
       <a class="btn btn-secondary" href="https://github.com/haynbroit-alt/curly-enigma/blob/main/README.md">
         Documentation
+      </a>
+      <a class="btn btn-secondary" href="https://github.com/haynbroit-alt/curly-enigma/blob/main/proof.tex">
+        Formal proof
       </a>
     </div>
   </div>
