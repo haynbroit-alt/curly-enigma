@@ -11,6 +11,7 @@ from .core.buffer import ReplayBuffer, Trajectory
 from .algorithms.trainer import Trainer
 from .algorithms.losses import total_loss
 from .utils.metrics import evaluate, exact_policy_dist
+from .callbacks.base import Callback
 
 
 class GeoFlowAgent:
@@ -169,30 +170,46 @@ class GeoFlowAgent:
         return {k: float(v) for k, v in losses.items()}
 
     def fit(self, n_steps: int, log_every: int = 200,
-            verbose: bool = True) -> list[dict]:
+            verbose: bool = True,
+            callbacks: "list[Callback] | None" = None) -> list[dict]:
         """Train for n_steps gradient steps using the internal env reward.
 
         Parameters
         ----------
         n_steps   : number of gradient steps
-        log_every : evaluate and print every this many steps
-        verbose   : print metrics to stdout
+        log_every : log metrics every this many steps
+        verbose   : print step summary to stdout
+        callbacks : list of Callback instances executed at each log point
 
         Returns
         -------
-        Training history: list of metric dicts.
+        Training history: list of metric dicts (one per log point).
         """
-        def _cb(step, metrics):
-            if not verbose:
-                return
-            prefix = "GeoFlow" if self.use_metric else "GFN-std"
-            parts = f"loss={metrics['total']:.4f} | gfn={metrics['gfn']:.4f}"
-            if self.use_metric:
-                parts += f" | kl={metrics['kl']:.4f} | smooth={metrics['smooth']:.4f}"
-            parts += f" | eps={metrics['eps']:.3f}"
-            print(f"[{prefix}] step={step:6d} | {parts}", flush=True)
+        cbs = callbacks or []
+        for cb in cbs:
+            cb.on_train_start(self, n_steps)
 
-        return self.trainer.train(n_steps, log_every=log_every, callback=_cb)
+        prefix = "GeoFlow" if self.use_metric else "GFN-std"
+
+        def _cb(step, metrics):
+            metrics["_n_steps"] = n_steps
+            if verbose:
+                parts = f"loss={metrics['total']:.4f} | gfn={metrics['gfn']:.4f}"
+                if self.use_metric:
+                    parts += f" | kl={metrics['kl']:.4f} | smooth={metrics['smooth']:.4f}"
+                parts += f" | eps={metrics['eps']:.3f}"
+                print(f"[{prefix}] step={step:6d} | {parts}", flush=True)
+            for cb in cbs:
+                cb.on_step_end(self, step, metrics)
+            metrics.pop("_n_steps", None)
+
+        history = self.trainer.train(
+            n_steps, log_every=log_every, callback=_cb,
+            stop_fn=lambda: any(cb.should_stop() for cb in cbs),
+        )
+        for cb in cbs:
+            cb.on_train_end(self, history)
+        return history
 
     def evaluate(self, threshold: float = 0.5) -> dict:
         """Compute exact TV and mode coverage (enumerable envs only).

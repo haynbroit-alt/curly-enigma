@@ -232,7 +232,7 @@ class Trainer:
         return {k: detach(v) for k, v in losses.items()} | {"eps": self._epsilon()}
 
     def train(self, n_steps: int, log_every: int = 100,
-              callback=None) -> list[dict]:
+              callback=None, stop_fn=None) -> list[dict]:
         """Train for n_steps gradient steps.
 
         Parameters
@@ -240,6 +240,7 @@ class Trainer:
         n_steps   : total number of gradient steps
         log_every : log metrics every this many steps
         callback  : callable(step, metrics) called at each log point
+        stop_fn   : callable() → bool; training stops early when it returns True
 
         Returns
         -------
@@ -255,5 +256,7 @@ class Trainer:
                 history.append(metrics)
                 if callback is not None:
                     callback(step, metrics)
+            if stop_fn is not None and stop_fn():
+                break
 
         return history
