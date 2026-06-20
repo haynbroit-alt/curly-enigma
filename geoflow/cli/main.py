@@ -143,7 +143,7 @@ def chat() -> None:
     from ..chat import GeoFlowChatAgent
 
     agent = GeoFlowChatAgent()
-    typer.echo(f"\nGeoFlow Chat  (type 'help' for examples, 'quit' to exit)\n")
+    typer.echo("\nGeoFlow Chat  (type 'help' for examples, 'quit' to exit)\n")
 
     while True:
         try:
