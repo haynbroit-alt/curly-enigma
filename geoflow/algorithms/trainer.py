@@ -151,7 +151,7 @@ class Trainer:
     def _compute_log_pf(self, trajs: list[Trajectory]) -> torch.Tensor:
         """Recompute log P_F(tau) under current policy (for gradient)."""
         env = self.env
-        D, K = env.depth, env.n_actions
+        D = env.depth
         B = len(trajs)
         log_pf = torch.zeros(B)
 
@@ -225,7 +225,10 @@ class Trainer:
             self.opt_metric.step()
 
         self._step += 1
-        detach = lambda v: float(v.detach()) if hasattr(v, "detach") else float(v)
+
+        def detach(v):
+            return float(v.detach()) if hasattr(v, "detach") else float(v)
+
         return {k: detach(v) for k, v in losses.items()} | {"eps": self._epsilon()}
 
     def train(self, n_steps: int, log_every: int = 100,

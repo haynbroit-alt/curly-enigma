@@ -1,3 +1,3 @@
-from .gflownet import GFlowNetPolicy
-from .metric import LearnableMetric
-from .buffer import ReplayBuffer, Trajectory
+from .gflownet import GFlowNetPolicy as GFlowNetPolicy
+from .metric import LearnableMetric as LearnableMetric
+from .buffer import ReplayBuffer as ReplayBuffer, Trajectory as Trajectory

@@ -14,7 +14,7 @@ def exact_policy_dist(policy: GFlowNetPolicy, env: DiscreteEnv) -> np.ndarray:
     """
     states = env.all_states()
     N = len(states)
-    D, K = env.depth, env.n_actions
+    D = env.depth
 
     log_p = torch.zeros(N)
     with torch.no_grad():

@@ -1,3 +1,3 @@
-from .base import DiscreteEnv
-from .gridworld import GridWorld
-from .combinatorial import ArithmeticEnv
+from .base import DiscreteEnv as DiscreteEnv
+from .gridworld import GridWorld as GridWorld
+from .combinatorial import ArithmeticEnv as ArithmeticEnv

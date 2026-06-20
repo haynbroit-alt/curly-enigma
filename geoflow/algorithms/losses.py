@@ -1,6 +1,5 @@
 """Loss functions for GeoFlow-GFN training."""
 import torch
-import torch.nn.functional as F
 
 
 def tb_loss(log_Z: torch.Tensor, log_pf: torch.Tensor,

@@ -1,6 +1,6 @@
 """Trajectory replay buffer with priority weighting."""
 from __future__ import annotations
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from collections import deque
 import numpy as np
 import torch

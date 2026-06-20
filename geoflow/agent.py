@@ -107,7 +107,6 @@ class GeoFlowAgent:
         -------
         List of terminal state tuples.
         """
-        eps = epsilon if epsilon is not None else self.trainer._epsilon()
         trajs = self.trainer.collect_batch(n)
         return [t.state for t in trajs]
 
@@ -183,8 +182,6 @@ class GeoFlowAgent:
         -------
         Training history: list of metric dicts.
         """
-        history = []
-
         def _cb(step, metrics):
             if not verbose:
                 return
