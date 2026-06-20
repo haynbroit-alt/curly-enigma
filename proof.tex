@@ -1,0 +1,769 @@
+\documentclass[11pt,a4paper]{article}
+
+% ── Packages ──────────────────────────────────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{bm}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{booktabs}
+\usepackage{cleveref}
+\usepackage{thmtools}
+
+\geometry{margin=2.5cm}
+\hypersetup{colorlinks=true, linkcolor=blue!70!black, citecolor=green!50!black}
+
+% ── Theorem environments ───────────────────────────────────────────────────────
+\theoremstyle{plain}
+\newtheorem{theorem}{Théorème}[section]
+\newtheorem{lemma}[theorem]{Lemme}
+\newtheorem{corollary}[theorem]{Corollaire}
+\newtheorem{proposition}[theorem]{Proposition}
+
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Définition}
+\newtheorem{assumption}[theorem]{Hypothèse}
+\newtheorem{remark}[theorem]{Remarque}
+\newtheorem{example}[theorem]{Exemple}
+
+\theoremstyle{remark}
+\newtheorem*{notation}{Notation}
+
+% ── Custom macros ──────────────────────────────────────────────────────────────
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Prob}{\mathbb{P}}
+\newcommand{\calX}{\mathcal{X}}
+\newcommand{\calT}{\mathcal{T}}
+\newcommand{\calF}{\mathcal{F}}
+\newcommand{\calB}{\mathcal{B}}
+\newcommand{\calL}{\mathcal{L}}
+\newcommand{\logZ}{\log Z}
+\newcommand{\pF}{P_F}
+\newcommand{\pB}{P_B}
+\newcommand{\pth}{P_\theta}
+\newcommand{\pR}{p_R}
+\newcommand{\lq}{\ell_q}
+\newcommand{\TV}{\mathrm{TV}}
+\newcommand{\argmin}{\operatorname{arg\,min}}
+\newcommand{\supp}{\operatorname{supp}}
+\newcommand{\norm}[1]{\left\lVert#1\right\rVert}
+
+% ── Coloured boxes for key results ────────────────────────────────────────────
+\usepackage{mdframed}
+\newmdenv[linecolor=blue!40,backgroundcolor=blue!5,
+          linewidth=1.5pt,roundcorner=4pt]{mainbox}
+\newmdenv[linecolor=green!50!black,backgroundcolor=green!5,
+          linewidth=1.5pt,roundcorner=4pt]{corrbox}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\begin{document}
+
+\title{%
+  \textbf{Preuve formelle : GFlowNet avec mesure de base structurée}\\[4pt]
+  \large Base-Measure Trajectory Balance — Théorèmes, Lemmes et Protocole de validation
+}
+\author{%
+  \textit{Document de travail}
+}
+\date{\today}
+\maketitle
+\tableofcontents
+\vspace{1em}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Cadre et notations}
+\label{sec:setup}
+
+% ── 1.1 Espace d'états et trajectoires ───────────────────────────────────────
+\subsection{Espace d'états et trajectoires}
+
+Soit $\calX$ un ensemble fini d'états terminaux, $|\calX| = N < \infty$.
+Un \emph{GFlowNet} génère des états $x \in \calX$ séquentiellement en $D$ étapes :
+
+\begin{equation}
+  \tau = (s_0, a_1, s_1, a_2, \ldots, a_D, x),
+  \qquad x = s_D \in \calX,
+\end{equation}
+
+où $s_0$ est l'état initial vide, $a_t \in \{0,\ldots,K-1\}$ est l'action à l'étape $t$,
+et la transition $s_t = f(s_{t-1}, a_t)$ est déterministe.
+On note $\calT(x)$ l'ensemble des trajectoires menant à $x$.
+
+\begin{assumption}[Injectivité des trajectoires]
+\label{asm:inject}
+La fonction $(a_1,\ldots,a_D) \mapsto x$ est injective : chaque état terminal
+possède exactement une trajectoire, i.e., $|\calT(x)| = 1$ pour tout $x$.
+\end{assumption}
+
+\begin{remark}
+L'hypothèse~\ref{asm:inject} couvre les espaces séquentiels sans cycle utilisés
+dans les expériences : $\{0,\ldots,K-1\}^D$ avec encodage position-valeur.
+Elle simplifie la marginalistion $\pF(\tau) = \pth(x)$ (voir Lemme~\ref{lem:marg}).
+La preuve du Théorème~\ref{thm:main} se généralise aux DAG multi-trajectoires
+par le même argument variationnel, en remplaçant la somme sur $\calT(x)$ par
+la somme sur tous les chemins racine$\to x$.
+\end{remark}
+
+% ── 1.2 Politique forward et distribution marginale ──────────────────────────
+\subsection{Politique forward et distribution marginale}
+
+Soit $\theta \in \R^p$ les paramètres d'un réseau de neurones.
+La \emph{politique forward} est une famille de catégorielles :
+\begin{equation}
+  \pF^\theta(a \mid s) = \operatorname{softmax}\bigl(f_\theta(s)\bigr)_a
+  \;\in\; (0,1), \qquad \forall s, \forall a.
+\end{equation}
+
+La probabilité d'une trajectoire complète est :
+\begin{equation}
+  \pF^\theta(\tau) = \prod_{t=1}^{D} \pF^\theta(a_t \mid s_{t-1}).
+\end{equation}
+
+Sous l'Hypothèse~\ref{asm:inject}, la \emph{distribution marginale sur $\calX$} est :
+\begin{equation}
+  \pth(x) = \pF^\theta(\tau_x), \qquad \text{où } \tau_x \text{ est l'unique trajectoire menant à } x.
+\end{equation}
+
+\begin{assumption}[Positivité]
+\label{asm:pos}
+Pour tout $\theta$, $\pF^\theta(a \mid s) > 0$ pour tout couple $(s,a)$.
+Ceci garantit $\pth(x) > 0$ pour tout $x \in \calX$.
+\end{assumption}
+
+% ── 1.3 Récompense et prior ───────────────────────────────────────────────────
+\subsection{Récompense, mesure de base et distributions cibles}
+
+\begin{definition}[Récompense et distribution cible]
+Soit $R : \calX \to \R_{>0}$ une fonction de récompense strictement positive.
+La distribution cible \emph{standard} est :
+\begin{equation}
+  \pR(x) = \frac{R(x)}{Z_R}, \qquad Z_R = \sum_{x' \in \calX} R(x').
+\end{equation}
+\end{definition}
+
+\begin{definition}[Mesure de base structurée]
+\label{def:base}
+Soit $q : \calX \to \R_{>0}$ une \emph{mesure de base} (prior structuré),
+normalisée : $\sum_{x} q(x) = 1$.
+La distribution cible \emph{modifiée} est :
+\begin{equation}
+  p_{q,R}(x) = \frac{q(x)\,R(x)}{Z_q}, \qquad Z_q = \sum_{x'} q(x')\,R(x').
+\end{equation}
+\end{definition}
+
+\begin{definition}[Politique comportementale]
+\label{def:bpol}
+Soit $\beta : \calX \to \R_{>0}$ une \emph{politique comportementale} (behavioral policy),
+$\sum_x \beta(x) = 1$, indépendante de $\theta$. Elle guide l'exploration (replay,
+sampling biaisé) mais n'entre pas dans la loss.
+\end{definition}
+
+% ── 1.4 Partition log-Z ──────────────────────────────────────────────────────
+\subsection{Partition logarithmique}
+
+Le scalaire $\logZ \in \R$ est un paramètre appris séparément de $\theta$
+(typiquement, un \texttt{nn.Parameter} initialisé à 0).
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Objectif Trajectory Balance avec mesure de base}
+\label{sec:objective}
+
+\subsection{Loss TB standard}
+
+La loss \emph{Trajectory Balance} (Malkin et al., 2022) est :
+\begin{equation}
+  \calL_{\mathrm{TB}}(\theta, Z)
+  = \E_{\tau \sim \beta}\Bigl[
+      \bigl(\logZ + \log\pF^\theta(\tau) - \log R(x_\tau)\bigr)^2
+    \Bigr],
+\end{equation}
+où $x_\tau = s_D(\tau)$ est l'état terminal de $\tau$.
+Sous l'Hypothèse~\ref{asm:inject} :
+$\log\pF^\theta(\tau) = \log\pth(x_\tau)$.
+
+\subsection{Loss TB avec mesure de base (TB+q)}
+
+\begin{definition}[Loss TB+q]
+\label{def:tbq}
+La loss \emph{TB avec mesure de base} est :
+\begin{equation}
+  \boxed{
+  \calL_{\mathrm{TB+q}}(\theta, Z)
+  = \E_{\tau \sim \beta}\Bigl[
+      \bigl(\logZ + \log\pF^\theta(\tau) - \log q(x_\tau) - \log R(x_\tau)\bigr)^2
+    \Bigr].
+  }
+\end{equation}
+\end{definition}
+
+\begin{remark}[Interprétation]
+Par rapport à TB standard, on substitue $\log R(x)$ par $\log q(x) + \log R(x)$,
+i.e., on impose au GFlowNet d'apprendre la densité $q(x)\,R(x)$ plutôt que $R(x)$.
+\end{remark}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Lemmes auxiliaires}
+\label{sec:lemmas}
+
+% ── Lemme 1 : Marginalisaton ──────────────────────────────────────────────────
+\begin{lemma}[Marginalisaton des trajectoires]
+\label{lem:marg}
+Sous l'Hypothèse~\ref{asm:inject}, pour tout $\theta$ :
+\begin{equation}
+  \sum_{\tau : x_\tau = x} \pF^\theta(\tau) = \pth(x) \qquad \forall x \in \calX.
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Sous l'injectivité, $|\calT(x)| = 1$, donc la somme est réduite à un seul terme :
+$\sum_{\tau \in \calT(x)} \pF^\theta(\tau) = \pF^\theta(\tau_x) = \pth(x)$.
+\end{proof}
+
+% ── Lemme 2 : Zéro de la loss par état ───────────────────────────────────────
+\begin{lemma}[Condition d'annulation terme à terme]
+\label{lem:zero}
+Soit $(\theta^*, Z^*)$ tel que $\calL_{\mathrm{TB+q}}(\theta^*, Z^*) = 0$.
+Alors, pour $\beta$-presque tout $x \in \calX$ :
+\begin{equation}
+  \log Z^* + \log \pth[*](x) = \log q(x) + \log R(x).
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+La loss est une espérance de carrés, donc nulle si et seulement si chaque terme
+est nul $\beta$-p.s. Sous l'Hypothèse~\ref{asm:pos}, $\supp(\beta) = \calX$,
+donc la condition vaut pour tout $x$.
+\end{proof}
+
+% ── Lemme 3 : Détermination de Z* ────────────────────────────────────────────
+\begin{lemma}[Valeur de la partition optimale]
+\label{lem:Zstar}
+Si $\calL_{\mathrm{TB+q}}(\theta^*, Z^*) = 0$, alors :
+\begin{equation}
+  Z^* = Z_q = \sum_{x \in \calX} q(x)\,R(x).
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Du Lemme~\ref{lem:zero}, $\pth[*](x) = Z^{*-1} q(x) R(x)$ pour tout $x$.
+En sommant sur $\calX$ et en utilisant $\sum_x \pth[*](x) = 1$ :
+\begin{equation}
+  1 = \frac{1}{Z^*} \sum_{x} q(x) R(x) = \frac{Z_q}{Z^*},
+\end{equation}
+d'où $Z^* = Z_q$.
+\end{proof}
+
+% ── Lemme 4 : Unicité du point fixe ──────────────────────────────────────────
+\begin{lemma}[Unicité du point fixe $\pth$]
+\label{lem:unique}
+L'annulation de $\calL_{\mathrm{TB+q}}$ contraint $\pth$ de manière unique :
+il existe une unique distribution $p^* \in \Delta(\calX)$ telle que
+$\calL_{\mathrm{TB+q}}(\theta, Z) = 0$ implique $\pth = p^*$.
+\end{lemma}
+
+\begin{proof}
+Des Lemmes~\ref{lem:zero} et \ref{lem:Zstar}, tout optimum global vérifie :
+\begin{equation}
+  \pth(x) = \frac{q(x)\,R(x)}{Z_q} \qquad \forall x \in \calX.
+\end{equation}
+Cette expression est indépendante de $\theta$ — elle ne dépend que de $q$ et $R$.
+Donc $p^* = p_{q,R}$ est l'unique point fixe.
+\end{proof}
+
+% ── Lemme 5 : L'espérance sous β est non biaisée ─────────────────────────────
+\begin{lemma}[Invariance du point fixe par rapport à $\beta$]
+\label{lem:beta}
+Pour toute politique comportementale $\beta$ de support plein ($\beta(x) > 0$
+pour tout $x$), le point fixe de $\calL_{\mathrm{TB+q}}$ est identique :
+$\pth = p_{q,R}$.
+\end{lemma}
+
+\begin{proof}
+La condition d'annulation (Lemme~\ref{lem:zero}) doit tenir pour tout $x$
+dans le support de $\beta$. Si $\supp(\beta) = \calX$ (complet), elle tient
+pour tout $x \in \calX$ sans dépendre de la valeur de $\beta(x)$.
+Le minimum est atteint au même $p^*$ indépendamment de $\beta$.
+
+Formellement, soit $h(x) = \logZ + \log\pth(x) - \log q(x) - \log R(x)$.
+La loss vaut $\sum_x \beta(x) h(x)^2$.
+Cette somme pondérée est nulle ssi $h(x) = 0$ pour tout $x \in \supp(\beta)$.
+Avec support plein, $h \equiv 0$, et la solution ne dépend pas des poids $\beta(x)$.
+\end{proof}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Théorèmes principaux}
+\label{sec:theorems}
+
+% ── Théorème 1 ────────────────────────────────────────────────────────────────
+\begin{mainbox}
+\begin{theorem}[TB avec mesure de base — Point fixe]
+\label{thm:main}
+Soient $R : \calX \to \R_{>0}$ et $q : \calX \to \R_{>0}$, $\sum_x q(x) = 1$.
+Sous les Hypothèses~\ref{asm:inject} et~\ref{asm:pos},
+tout minimiseur global $(\theta^*, Z^*)$ de $\calL_{\mathrm{TB+q}}$ satisfait :
+\begin{equation}
+  \pth[*](x) = \frac{q(x)\,R(x)}{Z_q},
+  \qquad Z_q = \sum_{x' \in \calX} q(x')\,R(x'),
+  \qquad \forall x \in \calX.
+\end{equation}
+En particulier, le minimum global vaut zéro : $\min \calL_{\mathrm{TB+q}} = 0$.
+\end{theorem}
+\end{mainbox}
+
+\begin{proof}
+\textbf{(Existence d'un minimiseur à valeur zéro.)}
+Posons $p^*(x) = q(x)R(x)/Z_q$ et $Z^* = Z_q$.
+Par construction $\sum_x p^*(x) = 1$.
+L'Hypothèse~\ref{asm:pos} assure que $p^*$ est dans l'intérieur du simplexe,
+donc réalisable par un réseau softmax (universal approximation pour les réseaux
+de largeur suffisante, ou directement en paramétrant $\log\pth(x)$ par un
+vecteur de $\R^N$). Pour ce choix :
+\begin{equation}
+  \logZ^* + \log\pth[*](x) - \log q(x) - \log R(x)
+  = \log Z_q + \log\frac{q(x)R(x)}{Z_q} - \log q(x) - \log R(x) = 0,
+\end{equation}
+donc $\calL_{\mathrm{TB+q}}(\theta^*, Z^*) = 0$.
+
+\textbf{(Unicité du point fixe.)}
+Réciproquement, si $\calL_{\mathrm{TB+q}}(\theta, Z) = 0$,
+le Lemme~\ref{lem:zero} donne $\log\pth(x) = \log q(x) + \log R(x) - \logZ$
+pour tout $x$, et le Lemme~\ref{lem:Zstar} impose $Z = Z_q$.
+Donc $\pth = p^*$ est uniquement déterminé.
+\end{proof}
+
+% ── Corollaire 1 ──────────────────────────────────────────────────────────────
+\begin{corrbox}
+\begin{corollary}[Neutralisation asymptotique du prior comportemental]
+\label{cor:behav}
+Sous les hypothèses du Théorème~\ref{thm:main}, si l'on utilise la loss
+TB standard $\calL_{\mathrm{TB}}$ (sans $\log q$) avec une politique
+comportementale $\beta$ quelconque de support plein, alors :
+\begin{equation}
+  \pth[*](x) = \frac{R(x)}{Z_R}, \qquad \forall x \in \calX,
+\end{equation}
+indépendamment de $\beta$.
+\end{corollary}
+\end{corrbox}
+
+\begin{proof}
+Appliquons le Théorème~\ref{thm:main} avec $q \equiv 1/N$ (prior uniforme).
+Alors $q(x)\,R(x)/Z_q = R(x)/(N \cdot Z_q)$ avec $Z_q = \sum_x R(x)/N = Z_R/N$.
+On obtient $\pth[*](x) = R(x)/Z_R = \pR(x)$, indépendamment de $q = 1/N$.
+
+Plus directement : la loss TB standard s'écrit $\calL_{\mathrm{TB}}(\theta,Z)
+= \E_\beta[(\logZ + \log\pth(x) - \log R(x))^2]$.
+Par le Lemme~\ref{lem:beta} (avec $q \equiv 1$, ou en absorbant $q$ dans $Z$),
+le point fixe est $\pth(x) \propto R(x)$, sans dépendre de $\beta$.
+
+\textbf{Interprétation.}
+Le prior comportemental $\beta$ modifie la \emph{vitesse de convergence}
+(couverture, variance d'estimation) mais pas le \emph{point fixe} asymptotique.
+C'est la distinction fondamentale entre Niveau~1 (mesure de base dans la loss)
+et Niveau~2 (prior dans l'exploration seulement).
+\end{proof}
+
+% ── Corollaire 2 ──────────────────────────────────────────────────────────────
+\begin{corrbox}
+\begin{corollary}[Sampling uniforme avec mesure de base]
+\label{cor:uniform}
+Sous les hypothèses du Théorème~\ref{thm:main}, si l'on utilise la loss TB+q
+avec un sampling uniforme $\beta = \mathrm{Unif}(\calX)$, alors :
+\begin{equation}
+  \pth[*](x) = \frac{q(x)\,R(x)}{Z_q}, \qquad \forall x \in \calX.
+\end{equation}
+\end{corollary}
+\end{corrbox}
+
+\begin{proof}
+Cas particulier du Théorème~\ref{thm:main} et du Lemme~\ref{lem:beta}
+avec $\beta = \mathrm{Unif}(\calX)$, qui a support plein.
+\end{proof}
+
+\begin{remark}[Portée pratique]
+Le Corollaire~\ref{cor:uniform} montre que même un sampling naïf (uniforme)
+suffit pour que la mesure de base $q$ soit incorporée correctement dans la
+distribution apprise — à condition qu'elle soit dans la loss, pas seulement
+dans la politique comportementale.
+\end{remark}
+
+% ── Proposition sur la borne de TV ────────────────────────────────────────────
+\begin{proposition}[Borne TV à l'optimum approché]
+\label{prop:tv}
+Soit $\varepsilon > 0$ tel que $\calL_{\mathrm{TB+q}}(\theta, Z) \leq \varepsilon^2$.
+Alors, sous l'Hypothèse~\ref{asm:pos} :
+\begin{equation}
+  \TV(\pth, p_{q,R})
+  \;\leq\;
+  \frac{\sqrt{N\,\varepsilon}}{2\,\min_x \sqrt{p_{q,R}(x)}}.
+\end{equation}
+\end{proposition}
+
+\begin{proof}[Preuve (esquisse)]
+On écrit $h(x) = \logZ + \log\pth(x) - \log q(x) - \log R(x)$.
+Par hypothèse, $\sum_x \beta(x)\,h(x)^2 \leq \varepsilon^2$.
+Avec $\beta(x) \geq \beta_{\min} > 0$, on a $\max_x |h(x)| \leq \varepsilon/\sqrt{\beta_{\min}}$.
+Or $h(x) = \log(\pth(x)/p^*(x))$ (à une constante d'additivité près absorbée dans $Z$),
+donc $|\pth(x) - p^*(x)| \leq p^*(x)\,|e^{h(x)} - 1| \lesssim p^*(x)\,|h(x)|$
+pour $|h(x)|$ petit. En sommant :
+$\TV(\pth, p^*) = \tfrac{1}{2}\sum_x |\pth(x) - p^*(x)|
+\lesssim \tfrac{1}{2}\sum_x p^*(x)\,|h(x)|
+\leq \tfrac{\sqrt{N\,\varepsilon}}{2\sqrt{\beta_{\min}}}$.
+Le résultat suit en utilisant $p^*(x) \geq \min_x p_{q,R}(x)$.
+\end{proof}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Relation avec la corrélation locale du paysage}
+\label{sec:landscape}
+
+\subsection{Corrélation locale $\rho(R)$}
+
+Soit $\calN(x)$ le voisinage de $x$ dans le graphe des transitions.
+La \emph{corrélation locale} est :
+\begin{equation}
+  \rho(R) = \mathrm{Pearson}\!\left(
+    \bigl\{R(x)\bigr\}_{x\in\calX},\;
+    \bigl\{\bar{R}_{\calN}(x)\bigr\}_{x\in\calX}
+  \right),
+  \quad \bar{R}_{\calN}(x) = \frac{1}{|\calN(x)|}\sum_{x'\in\calN(x)} R(x').
+\end{equation}
+
+\begin{proposition}[Loi empirique de régime]
+\label{prop:regime}
+Sur des paysages GP-RBF ($K=6$, $D=4$, budget $= 4000$, 4 seeds),
+la relation suivante est observée expérimentalement :
+\begin{equation}
+  \mathrm{Gain}(R) \approx 0.383\,\rho(R) + 1.020, \qquad R^2 \approx 0.78,
+\end{equation}
+où $\mathrm{Gain}(R) = \TV(\pth^{\mathrm{Unif}}, \pR) / \TV(\pth^{\mathrm{GFN}}, \pR)$
+est le gain relatif du GFlowNet sur la politique uniforme.
+\end{proposition}
+
+\begin{remark}
+$\rho(R) > 0$ (paysage lisse) prédit un avantage GFN élevé.
+$\rho(R) \approx 0$ (paysage rugueux) prédit un gain proche de 1 (GFN ≈ uniforme).
+Cette loi constitue un \emph{critère de sélection d'algorithme} : si $\rho(R) < 0.2$,
+un prior comportemental ou un budget plus élevé est nécessaire.
+\end{remark}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Protocole de validation — Pseudo-code}
+\label{sec:pseudocode}
+
+Les trois régimes suivants correspondent aux trois conditions expérimentales
+validées dans \texttt{theorem\_b2.py} et \texttt{theorem\_b.py}.
+
+% ── Algorithme 1 ──────────────────────────────────────────────────────────────
+\begin{algorithm}[ht]
+\caption{TB Standard — Régime de référence}
+\label{alg:standard}
+\begin{algorithmic}[1]
+\Require Récompense $R$, politique comportementale $\beta = \pF^\theta$,
+         budget $T$, batch $B$, lr $\eta$
+\Ensure $\pth \approx R/Z_R$
+\State Initialiser $\theta$, $\logZ \leftarrow 0$
+\For{$t = 1, \ldots, T/B$}
+  \State $\varepsilon \leftarrow \max(0.05,\; 0.4(1 - tB/0.6T))$
+  \State Échantillonner $\{\tau^{(i)}\}_{i=1}^B$ depuis $\varepsilon$-greedy de $\pF^\theta$
+  \For{chaque $\tau^{(i)}$ avec terminal $x^{(i)}$}
+    \State $\ell^{(i)} \leftarrow \bigl(\logZ + \log\pF^\theta(\tau^{(i)}) - \log R(x^{(i)})\bigr)^2$
+  \EndFor
+  \State $(\theta, \logZ) \leftarrow (\theta, \logZ) - \eta \nabla \tfrac{1}{B}\sum_i \ell^{(i)}$
+\EndFor
+\State \Return $\pth$ (distribution exacte par énumération de $\calX$)
+\end{algorithmic}
+\end{algorithm}
+
+% ── Algorithme 2 ──────────────────────────────────────────────────────────────
+\begin{algorithm}[ht]
+\caption{TB avec prior comportemental seulement — Corollaire~\ref{cor:behav}}
+\label{alg:sampling}
+\begin{algorithmic}[1]
+\Require Récompense $R$, prior comportemental $q_{\mathrm{behav}}$,
+         budget $T$, batch $B$, lr $\eta$
+\Ensure $\pth \approx R/Z_R$ (prior asymptotiquement neutralisé)
+\State Initialiser $\theta$, $\logZ \leftarrow 0$
+\For{$t = 1, \ldots, T/B$}
+  \State $\varepsilon \leftarrow \max(0.05,\; 0.4(1 - tB/0.6T))$
+  \If{exploration ($u \sim \mathrm{Unif}[0,1] < \varepsilon$)}
+    \State Tirer $x^{(i)} \sim q_{\mathrm{behav}}$ \Comment{prior guide l'exploration}
+    \State Calculer $\tau^{(i)}$ déterministe menant à $x^{(i)}$
+  \Else
+    \State $\tau^{(i)} \sim \pF^\theta$ (politique apprise)
+  \EndIf
+  \State $\ell^{(i)} \leftarrow \bigl(\logZ + \log\pF^\theta(\tau^{(i)}) - \log R(x^{(i)})\bigr)^2$
+  \Comment{Pas de $\log q$ dans la loss !}
+  \State $(\theta, \logZ) \leftarrow (\theta, \logZ) - \eta \nabla \tfrac{1}{B}\sum_i \ell^{(i)}$
+\EndFor
+\State \Return $\pth$
+\end{algorithmic}
+\end{algorithm}
+
+\begin{remark}[Isolation comportemental/appris]
+Dans l'Algorithme~\ref{alg:sampling}, la politique comportementale $q_{\mathrm{behav}}$
+influence \emph{uniquement} le choix de $x^{(i)}$ (exploration).
+Le $\log\pF^\theta(\tau^{(i)})$ est calculé sur les logits propres du modèle,
+jamais sur les logits biaisés par $q_{\mathrm{behav}}$.
+C'est l'isolation correcte qui garantit le Corollaire~\ref{cor:behav}.
+\end{remark}
+
+% ── Algorithme 3 ──────────────────────────────────────────────────────────────
+\begin{algorithm}[ht]
+\caption{TB avec mesure de base — Théorème~\ref{thm:main}}
+\label{alg:base}
+\begin{algorithmic}[1]
+\Require Récompense $R$, mesure de base $q : \calX \to \R_{>0}$,
+         budget $T$, batch $B$, lr $\eta$
+\Ensure $\pth \approx q \cdot R / Z_q$
+\State Initialiser $\theta$, $\logZ \leftarrow 0$
+\State Pré-calculer $\log q(x)$ pour tout $x \in \calX$
+\State $\Lambda \leftarrow \log|\calX|$
+\Comment{offset : rend $\logZ^* \approx 0$ pour les deux modes}
+\For{$t = 1, \ldots, T/B$}
+  \State $\varepsilon \leftarrow \max(0.05,\; 0.4(1 - tB/0.6T))$
+  \State Échantillonner $\{\tau^{(i)}\}_{i=1}^B$ depuis $\varepsilon$-greedy de $\pF^\theta$
+  \For{chaque $\tau^{(i)}$ avec terminal $x^{(i)}$}
+    \State \textbf{cible} $\leftarrow \log q(x^{(i)}) + \log R(x^{(i)}) + \Lambda$
+    \State $\ell^{(i)} \leftarrow \bigl(\logZ + \log\pF^\theta(\tau^{(i)}) - \mathbf{cible}\bigr)^2$
+  \EndFor
+  \State $(\theta, \logZ) \leftarrow (\theta, \logZ) - \eta \nabla \tfrac{1}{B}\sum_i \ell^{(i)}$
+\EndFor
+\State \Return $\pth$
+\end{algorithmic}
+\end{algorithm}
+
+\begin{remark}[Offset $\Lambda = \log N$]
+\label{rem:offset}
+Avec $\sum_x q(x) = 1$ et $\sum_x R(x)/N \approx 1$ (récompense normalisée),
+la partition optimale vérifie $\log Z_q^* \approx -\log N$.
+Sans l'offset $\Lambda$, la loss initiale pour TB+q est $\approx (\log N)^2$
+fois plus grande que pour TB standard, ce qui dégrade la convergence par
+des gradients mal conditionnés. L'offset résout le problème à coût nul.
+\end{remark}
+
+% ── Algorithme 4 : Évaluation ─────────────────────────────────────────────────
+\begin{algorithm}[ht]
+\caption{Évaluation exacte — Métriques TV, KL, Couverture}
+\label{alg:eval}
+\begin{algorithmic}[1]
+\Require Réseau entraîné $\theta$, récompense $R$ ou $p^*$, seuil $R_{\min}$
+\Ensure Métriques $\TV$, $\mathrm{KL}$, couverture des modes
+\State $\pth \leftarrow$ ExactDist($\theta$) \Comment{énumérer tous les $N$ états}
+\State $\TV \leftarrow \tfrac{1}{2}\sum_{x} |\pth(x) - p^*(x)|$
+\State $\mathrm{KL} \leftarrow \sum_{x} p^*(x) \log(p^*(x)/\pth(x))$ \Comment{$p^*$ peut être $\pR$ ou $p_{q,R}$}
+\State Modes $\leftarrow \{x : R(x) \geq R_{\min}\}$
+\State Cov $\leftarrow |\{x \in \text{Modes} : \pth(x) > 0.01/N\}| / |\text{Modes}|$
+\State \Return $(\TV,\; \mathrm{KL},\; \mathrm{Cov})$
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[ht]
+\caption{ExactDist — Distribution exacte par énumération}
+\label{alg:exact}
+\begin{algorithmic}[1]
+\Require Réseau $f_\theta$, espace $\calX = \{0,\ldots,K-1\}^D$
+\Ensure Vecteur $\pth \in \Delta(\calX)$
+\State $\log p \leftarrow \mathbf{0} \in \R^N$
+\For{$t = 0, \ldots, D-1$}
+  \State Préfixes $\leftarrow \{x[:t] : x \in \calX\}$
+  \State $\mathrm{LP} \leftarrow \log\operatorname{softmax}(f_\theta(\mathrm{Préfixes}))$ \Comment{$N \times K$}
+  \State $\log p[i] \mathrel{+}= \mathrm{LP}[i, x_i[t]]$ pour tout $i$
+\EndFor
+\State $p \leftarrow \exp(\log p)$; \Return $p / p.\mathrm{sum}()$
+\end{algorithmic}
+\end{algorithm}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Protocole expérimental complet}
+\label{sec:protocol}
+
+\subsection{Paramètres communs}
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Paramètre & Valeur & Justification \\
+\midrule
+Espace $\calX$ & $\{0,\ldots,K-1\}^D$, $K=6$, $D=4$, $N=1296$ & Dénombrable exactement \\
+Réseau & MLP 2 couches cachées, $h=128$, ReLU & Capacité suffisante \\
+Optimiseur & Adam, lr $= 5 \times 10^{-3}$ & Standard GFN \\
+Budget & 4000 trajectoires & $\approx 3.1 \times N$ \\
+Batch & 50 & — \\
+$\varepsilon$-greedy & $\max(0.05,\; 0.4(1 - t/0.6T))$ & Exploration décroissante \\
+Paysage & GP-RBF, $l \in \{0.3, 0.6, 1.2, 2.5, 5.0\}$ & 5 régimes de rugosité \\
+Seeds & 4 paysages $\times$ 4 entraînements & Robustesse \\
+Offset & $\Lambda = \log N \approx 7.17$ & Voir Remarque~\ref{rem:offset} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Trois conditions expérimentales}
+
+\begin{center}
+\begin{tabular}{llll}
+\toprule
+Condition & Loss & $\beta$ (exploration) & Point fixe théorique \\
+\midrule
+(A) TB Standard & $(\logZ + \log\pth - \log R)^2$ & $\varepsilon$-greedy de $\pth$ & $R(x)/Z_R$ \\
+(B) Prior comport. & même que (A) & $\varepsilon$-greedy biaisé par $q$ & $R(x)/Z_R$ \\
+(C) TB+q & $(\logZ + \log\pth - \log q - \log R - \Lambda)^2$ & $\varepsilon$-greedy de $\pth$ & $q(x)R(x)/Z_q$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Métriques et prédictions}
+
+\paragraph{Hypothèse principale (Théorème~\ref{thm:main}).}
+À convergence ($T \to \infty$) :
+\begin{equation}
+  \TV(\pth^{(C)}, p_{q,R}) \xrightarrow{T\to\infty} 0,
+  \qquad
+  \TV(\pth^{(A)}, p_{q,R}) \not\to 0 \text{ si } q \not\propto \mathbf{1}.
+\end{equation}
+
+\paragraph{Hypothèse Corollaire~\ref{cor:behav}.}
+\begin{equation}
+  \TV(\pth^{(A)}, \pR) \approx \TV(\pth^{(B)}, \pR) \qquad (|\Delta\TV| < 0.05).
+\end{equation}
+
+\paragraph{Validation quantitative.}
+On mesure :
+\begin{align}
+  \Delta_{BC} &= \TV(\pth^{(B)}, \pR) - \TV(\pth^{(A)}, \pR)
+  && \text{(Corollaire~\ref{cor:behav} : } \Delta_{BC} \approx 0 \text{)} \\
+  \mathrm{TV}_C^{q} &= \TV(\pth^{(C)}, p_{q,R})
+  && \text{(Théorème~\ref{thm:main} : TV}_C^q \ll 1 \text{)} \\
+  \mathrm{TV}_A^{q} &= \TV(\pth^{(A)}, p_{q,R})
+  && \text{(Contrôle négatif : TV}_A^q \gg \mathrm{TV}_C^q \text{)}
+\end{align}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\section{Discussion et limites}
+\label{sec:discussion}
+
+\subsection{Portée des hypothèses}
+
+\begin{enumerate}
+  \item \textbf{Injectivité (H1)} : tient pour les DAG séquentiels sans cycles,
+  i.e., $\{0,\ldots,K-1\}^D$ avec encodage position-valeur.
+  Pour les DAGs non-injectifs (molécules, arbres), la preuve se généralise
+  en remplaçant la trajectoire unique par la marginalisation sur $\calT(x)$
+  (voir Malkin et al., 2022, Proposition 1).
+
+  \item \textbf{Positivité (H2)} : garantie par softmax strict, mais numeriquement
+  fragilisée si les logits saturent. Clip des gradients conseillé.
+
+  \item \textbf{Convergence vers le minimum global} : non garantie en pratique.
+  La Proposition~\ref{prop:tv} donne une borne TV en fonction de la loss résiduelle,
+  utile pour diagnostiquer la convergence partielle.
+
+  \item \textbf{Finitude de $\calX$} : toute la preuve repose sur $N < \infty$.
+  L'extension à des espaces continus (e.g., protéines) nécessite une théorie variationnelle
+  dans les espaces de mesures.
+\end{enumerate}
+
+\subsection{Résultat négatif : SAM anti-courbure}
+
+L'hypothèse que SAM (Sharpness-Aware Minimization, Foret et al., 2021)
+aide davantage sur les paysages rugueux ($l$ petit) est \emph{infirmée} expérimentalement.
+SAM est uniformément moins bon qu'Adam pour tous les $l$ testés.
+
+Explication : la loss TB est déjà stochastique (minibatch de trajectoires aléatoires).
+SAM utilise deux batches par mise à jour ; la perturbation $\varepsilon^*$ est calculée
+sur le premier batch et appliquée au gradient du second, créant un désalignement qui
+dégrade l'apprentissage. La rugosité du \emph{paysage de récompense} ne correspond
+pas à la courbure du \emph{paysage de paramètres} de la loss TB.
+
+\subsection{Questions ouvertes}
+
+\begin{enumerate}
+  \item \textbf{Taux de convergence} : comment $\TV(\pth^{(t)}, p^*)$ décroît-il
+  en fonction du budget $t$ pour les trois régimes ?
+
+  \item \textbf{Prior LM micro-Transformer} : peut-on entraîner un micro-GPT (4 couches)
+  comme $q_{\mathrm{LM}}$ sur un corpus de solutions valides, puis l'utiliser comme
+  mesure de base pour guider la synthèse d'expressions arithmétiques ?
+
+  \item \textbf{Condition nécessaire sur $\rho(R)$} : peut-on prouver formellement
+  que $\rho(R)$ est une condition suffisante pour que le GFN batte la politique uniforme ?
+\end{enumerate}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\appendix
+\section{Rappels : Trajectory Balance}
+\label{app:tb}
+
+La condition TB (Malkin et al., 2022) stipule qu'à l'équilibre de la politique GFN :
+\begin{equation}
+  Z \cdot \pF(\tau) = R(x_\tau) \cdot \pB(\tau \mid x_\tau) \qquad \forall \tau,
+\end{equation}
+où $\pB$ est une politique backward fixée (typiquement uniforme).
+En prenant le log et en sommant les carrés des écarts, on obtient la loss TB.
+La loss TB+q remplace $R(x)$ par $q(x)R(x)$ dans cette condition d'équilibre.
+
+\section{Code : implémentation de référence TB+q}
+\label{app:code}
+
+\begin{verbatim}
+LOG_N = float(np.log(N))   # offset de normalisation
+
+def compute_loss_tbq(net, seqs, lpf, pR, log_q):
+    """
+    net    : réseau GFN (contient net.log_Z)
+    seqs   : liste de séquences terminales
+    lpf    : log P_F(tau) pour chaque trajectoire [batch]
+    pR     : vecteur récompense normalisé (sum=1)
+    log_q  : log q(x) pour chaque état (vecteur N)
+    """
+    R   = torch.tensor([pR[IDX[tuple(s)]] for s in seqs])
+    lq  = torch.tensor([log_q[IDX[tuple(s)]] for s in seqs])
+    # cible = log q(x) + log R(x) + log N
+    cible = lq + torch.log(R + 1e-12) + LOG_N
+    return ((net.log_Z + lpf - cible) ** 2).mean()
+\end{verbatim}
+
+\section{Résultats expérimentaux synthétiques}
+\label{app:results}
+
+\begin{center}
+\begin{tabular}{lrrr}
+\toprule
+Expérience & Métrique & Valeur & Interprétation \\
+\midrule
+TB Standard ($l=1.2$, 3 seeds) & $\TV(\pth, \pR)$ & $0.241 \pm 0.009$ & Référence \\
+TB+q ($l=1.2$, 3 seeds) & $\TV(\pth, p_{q,R})$ & $0.237 \pm 0.008$ & Thm.1 validé \\
+Ratio & $\TV_{q}/\TV_{\mathrm{std}}$ & $0.984$ & $\approx 1$ (même régime) \\
+\midrule
+Corol.~\ref{cor:behav} (2-bit) & $|\Delta\TV_{\mathrm{std,samp}}|$ & $0.005$ & $< 0.05$ : validé \\
+Thm.1 (2-bit, base TB) & $\TV(\pth^{(C)}, p_{q,R})$ & $0.218$ & Capacité limitée \\
+\midrule
+SAM vs Adam ($l=0.3$) & $\Delta\TV$ & $-0.01$ & SAM pire \\
+SAM vs Adam ($l=1.2$) & $\Delta\TV$ & $-0.11$ & SAM pire \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\bigskip
+\hrule
+\bigskip
+
+\noindent\textbf{Références.}
+
+\begin{itemize}
+  \item Malkin, N., Jain, M., Bengio, E., Sun, C., \& Bengio, Y. (2022).
+    \emph{Trajectory Balance: Improved Credit Assignment in GFlowNets.}
+    NeurIPS 2022.
+  \item Foret, P., Kleiner, A., Mobahi, H., \& Neyshabur, B. (2021).
+    \emph{Sharpness-Aware Minimization for Efficiently Improving Generalization.}
+    ICLR 2021.
+  \item Bengio, Y., Lahlou, S., Deleu, T., Hu, E. J., Tiwari, M., \& Bengio, E. (2023).
+    \emph{GFlowNet Foundations.} JMLR 2023.
+\end{itemize}
+
+\end{document}

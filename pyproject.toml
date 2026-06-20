@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "geoflow-gfn"
+version = "0.1.0"
+description = "Adaptive exploration kernel for GFlowNets — learnable metric + TB training"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+dependencies = [
+    "torch>=2.0",
+    "numpy>=1.24",
+    "scipy>=1.10",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7", "matplotlib>=3.7"]
+bench = ["matplotlib>=3.7"]
+
+[tool.setuptools.packages.find]
+include = ["geoflow*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
